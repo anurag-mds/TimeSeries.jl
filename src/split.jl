@@ -27,8 +27,6 @@ function when(ta::TimeArray, window::TimeWindow)
     return ta[findall(t -> window.from <= Time(t) <= window.to, timestamp(ta))]
 end
 
-
-
 """
     time_slots(start::DateTime, stop::DateTime, interval::Period;
                     from::Time=Time(0,0), to::Time=Time(23,59))
@@ -37,10 +35,14 @@ Return A `TimeArray` where each timestamp falls within the daily time
 window `[from, to]`,
 filtered from the full `start` to `stop` range at the given `interval`
 """
-function time_slots(start::DateTime, stop::DateTime, interval::Period;
-                    from::Time=Time(0,0), to::Time=Time(23,59))
-    timestamps = filter(dt -> Time(dt) ∈ from:interval:to,
-                        start:interval:stop)
+function time_slots(
+    start::DateTime,
+    stop::DateTime,
+    interval::Period;
+    from::Time=Time(0, 0),
+    to::Time=Time(23, 59),
+)
+    timestamps = filter(dt -> Time(dt) ∈ from:interval:to, start:interval:stop)
     return TimeArray(timestamps, ones(length(timestamps)))
 end
 
@@ -52,8 +54,9 @@ Return A `TimeArray` where each timestamp falls within the daily time
 window `[from, to]`,
 filtered from the given `range`
 """
-function time_slots(range::StepRange{DateTime};
-                    from::Time=Time(0,0), to::Time=Time(23,59))
+function time_slots(
+    range::StepRange{DateTime}; from::Time=Time(0, 0), to::Time=Time(23, 59)
+)
     timestamps = filter(dt -> Time(dt) ∈ from:step(range):to, range)
     return TimeArray(timestamps, ones(length(timestamps)))
 end
