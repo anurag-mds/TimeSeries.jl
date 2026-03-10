@@ -198,4 +198,3 @@ using TimeSeries
         ) == 42
     end
 end  # @testset "split"
-
