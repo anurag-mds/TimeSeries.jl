@@ -27,6 +27,40 @@ function when(ta::TimeArray, window::TimeWindow)
     return ta[findall(t -> window.from <= Time(t) <= window.to, timestamp(ta))]
 end
 
+
+struct TimeSlot{T<:DateTime, P<:Period}
+    start::DateTime
+    stop::DateTime
+    interval::P
+    from::Time
+    to::Time
+end
+
+Base.IteratorSize(::Type{<:TimeSlot}) = Base.SizeUnknown()
+Base.eltype(::Type{<:TimeSlot}) = DateTime
+
+function Base.iterate(ts::TimeSlot)
+    current = ts.start
+    while current <= ts.stop
+        if ts.from <= Time(current) <= ts.to
+            return (current, current + ts.interval)
+        end
+        current += ts.interval
+    end
+    return nothing
+end
+
+function Base.iterate(ts::TimeSlot, state::DateTime)
+    current = state
+    while current <= ts.stop
+        if ts.from <= Time(current) <= ts.to
+            return (current, current + ts.interval)
+        end
+        current += ts.interval
+    end
+    return nothing
+end
+
 """
     time_slots(start::DateTime, stop::DateTime, interval::Period;
                     from::Time=Time(0,0), to::Time=Time(23,59))
@@ -42,7 +76,7 @@ function time_slots(
     from::Time=Time(0, 0),
     to::Time=Time(23, 59),
 )
-    return filter(dt -> from <= Time(dt) <= to, start:interval:stop)
+    return TimeSlot{DateTime, typeof(interval)}(start, stop, interval, from, to)
 end
 
 """
@@ -56,7 +90,7 @@ filtered from the given `range`
 function time_slots(
     range::StepRange{DateTime}; from::Time=Time(0, 0), to::Time=Time(23, 59)
 )
-    return filter(dt -> from <= Time(dt) <= to, range)
+    return TimeSlot{DateTime, typeof(step(range))}(range.start, range.stop, step(range), from, to)
 end
 
 # from, to ######################
