@@ -27,8 +27,7 @@ function when(ta::TimeArray, window::TimeWindow)
     return ta[findall(t -> window.from <= Time(t) <= window.to, timestamp(ta))]
 end
 
-
-struct TimeSlot{T<:DateTime, P<:Period}
+struct TimeSlot{T<:DateTime,P<:Period}
     start::DateTime
     stop::DateTime
     interval::P
@@ -76,7 +75,7 @@ function time_slots(
     from::Time=Time(0, 0),
     to::Time=Time(23, 59),
 )
-    return TimeSlot{DateTime, typeof(interval)}(start, stop, interval, from, to)
+    return TimeSlot{DateTime,typeof(interval)}(start, stop, interval, from, to)
 end
 
 """
@@ -90,7 +89,9 @@ filtered from the given `range`
 function time_slots(
     range::StepRange{DateTime}; from::Time=Time(0, 0), to::Time=Time(23, 59)
 )
-    return TimeSlot{DateTime, typeof(step(range))}(range.start, range.stop, step(range), from, to)
+    return TimeSlot{DateTime,typeof(step(range))}(
+        range.start, range.stop, step(range), from, to
+    )
 end
 
 # from, to ######################
