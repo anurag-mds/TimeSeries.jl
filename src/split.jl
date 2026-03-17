@@ -10,12 +10,6 @@ function when(ta::TimeArray, period::Function, t::Integer)
 end
 when(ta::TimeArray, period::Function, t::String) = ta[findall(period.(timestamp(ta)) .== t)]
 
-"""
-    when(ta::TimeArray, window::TimeWindow)
-
-Return a subset of `TimeArray` where the time of each timestamp falls
-within the daily window `[window.from, window.to]`.
-"""
 struct TimeWindow
     from::Time
     to::Time
@@ -23,22 +17,28 @@ end
 
 time_slots(; from::Time, to::Time) = TimeWindow(from, to)
 
+"""
+    when(ta::TimeArray, window::TimeWindow)
+
+Return a subset of `TimeArray` where the time of each timestamp falls
+within the daily window `[window.from, window.to]`.
+"""
 function when(ta::TimeArray, window::TimeWindow)
     return ta[findall(t -> window.from <= Time(t) <= window.to, timestamp(ta))]
 end
 
-struct TimeSlot{T<:DateTime,P<:Period}
-    start::DateTime
-    stop::DateTime
+struct TimeSlot{T<:TimeType,P<:Period}
+    start::T
+    stop::T
     interval::P
     from::Time
     to::Time
 end
 
 Base.IteratorSize(::Type{<:TimeSlot}) = Base.SizeUnknown()
-Base.eltype(::Type{<:TimeSlot}) = DateTime
+Base.eltype(::Type{TimeSlot{T,P}}) where {T,P} = T
 
-function Base.iterate(ts::TimeSlot)
+function Base.iterate(ts::TimeSlot{T}) where {T}
     current = ts.start
     while current <= ts.stop
         if ts.from <= Time(current) <= ts.to
@@ -49,7 +49,7 @@ function Base.iterate(ts::TimeSlot)
     return nothing
 end
 
-function Base.iterate(ts::TimeSlot, state::DateTime)
+function Base.iterate(ts::TimeSlot{T}, state::T) where {T}
     current = state
     while current <= ts.stop
         if ts.from <= Time(current) <= ts.to
@@ -61,39 +61,42 @@ function Base.iterate(ts::TimeSlot, state::DateTime)
 end
 
 """
-    time_slots(start::DateTime, stop::DateTime, interval::Period;
+    time_slots(start::T, stop::T, interval::Period;
                     from::Time=Time(0,0), to::Time=Time(23,59))
 
-Return A `Vector{DateTime}` where each timestamp falls within the daily time 
+Return A `TimeSlot` iterator where each timestamp falls within the daily time 
 window `[from, to]`,
 filtered from the full `start` to `stop` range at the given `interval`
 """
 function time_slots(
-    start::DateTime,
-    stop::DateTime,
-    interval::Period;
-    from::Time=Time(0, 0),
-    to::Time=Time(23, 59),
-)
-    return TimeSlot{DateTime,typeof(interval)}(start, stop, interval, from, to)
+    start::T, stop::T, interval::Period; from::Time=Time(0, 0), to::Time=Time(23, 59)
+) where {T<:TimeType}
+    # Check for negative or zero period
+    if interval <= zero(interval)
+        throw(ArgumentError("interval must be positive, got $interval"))
+    end
+
+    return TimeSlot{typeof(start),typeof(interval)}(start, stop, interval, from, to)
 end
 
 """
-   time_slots(range::StepRange{DateTime};
+   time_slots(range::StepRange{T};
                     from::Time=Time(0,0), to::Time=Time(23,59))
                     
-Return A `Vector{DateTime}` where each timestamp falls within the daily time 
+Return A `TimeSlot` iterator where each timestamp falls within the daily time 
 window `[from, to]`,
 filtered from the given `range`
 """
 function time_slots(
-    range::StepRange{DateTime}; from::Time=Time(0, 0), to::Time=Time(23, 59)
-)
-    return TimeSlot{DateTime,typeof(step(range))}(
+    range::StepRange{T}; from::Time=Time(0, 0), to::Time=Time(23, 59)
+) where {T}
+    if step(range) <= zero(step(range))
+        throw(ArgumentError("interval must be positive, got $(step(range))"))
+    end
+    return TimeSlot{eltype(range),typeof(step(range))}(
         range.start, range.stop, step(range), from, to
     )
 end
-
 # from, to ######################
 
 """

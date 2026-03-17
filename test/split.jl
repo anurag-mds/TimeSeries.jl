@@ -210,6 +210,18 @@ using TimeSeries
         ) == 42
     end
 
+    # Test for negative Day interval
+    @test_throws ArgumentError time_slots(
+        DateTime(2023, 1, 1), DateTime(2023, 1, 2), Day(-1), from=Time(9), to=Time(17)
+    )
+    # Test for zero Minute interval
+    @test_throws ArgumentError time_slots(
+        DateTime(2023, 1, 1), DateTime(2023, 1, 2), Minute(0)
+    )
+
+    # Test for StepRange overload with negative step
+    rng = DateTime(2023, 1, 2):Day(-1):DateTime(2023, 1, 1)
+    @test_throws ArgumentError time_slots(rng)
     @testset "TimeSlot performance" begin
         big_slots = time_slots(
             DateTime(2000, 1, 1),
